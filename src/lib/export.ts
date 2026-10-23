@@ -4,6 +4,8 @@ import { buildXlsx, downloadFile, type Cell, type SheetSpec } from './xlsx';
 export interface ExportOptions {
   /** Шаги, калории, набор высоты */
   withExtras?: boolean;
+  /** «duration» — 2:56:34 (формат Excel), «minutes» — 176,6 */
+  timeFormat?: 'duration' | 'minutes';
 }
 
 function sortForExport(entries: Entry[]): Entry[] {
@@ -19,14 +21,17 @@ function sortForExport(entries: Entry[]): Entry[] {
 
 export function buildSheet(entries: Entry[], opts: ExportOptions = {}): SheetSpec {
   const rows: Cell[][] = [];
-  const header = ['Дата и время', 'Километраж (км)', 'Время (мин)', 'Ссылка'];
+  const minutes = opts.timeFormat === 'minutes';
+  const header = ['Дата и время', 'Километраж (км)', minutes ? 'Время (мин)' : 'Время', 'Ссылка'];
   if (opts.withExtras) header.push('Активность', 'Шаги', 'Калории', 'Набор высоты (м)');
 
   for (const e of sortForExport(entries)) {
     const row: Cell[] = [
       { v: e.dateISO ?? '', type: e.dateISO ? 'datetime' : 'text' },
       { v: Math.round(e.distanceKm * 100) / 100, type: 'number' },
-      { v: Math.round((e.durationSec / 60) * 10) / 10, type: 'number' },
+      minutes
+        ? { v: Math.round((e.durationSec / 60) * 10) / 10, type: 'number' }
+        : { v: e.durationSec, type: 'duration' },
       { v: e.url, type: 'text' },
     ];
     if (opts.withExtras) {
@@ -50,6 +55,13 @@ function stamp(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
 }
 
+function clock(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export function exportXlsx(entries: Entry[], opts: ExportOptions = {}): void {
   const sheet = buildSheet(entries, opts);
   const data = buildXlsx([sheet]);
@@ -68,7 +80,9 @@ export function exportCsv(entries: Entry[], opts: ExportOptions = {}): void {
       row
         .map((c, i) => {
           if (i === 0 && typeof c.v === 'string' && c.v) return esc(c.v.replace('T', ' '));
-          if (i === 2 && typeof c.v === 'number') return esc(String(c.v).replace('.', ','));
+          if (i === 2 && typeof c.v === 'number') {
+            return esc(c.type === 'duration' ? clock(c.v) : String(c.v).replace('.', ','));
+          }
           if (i === 1 && typeof c.v === 'number') return esc(c.v.toFixed(2).replace('.', ','));
           return esc(c.v ?? '');
         })

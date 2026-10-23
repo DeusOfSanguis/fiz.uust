@@ -583,6 +583,15 @@ select {
   padding: 3px 8px;
 }
 
+.export-field {
+  margin-bottom: 14px;
+}
+
+.export-field select {
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
 .checkbox {
   display: flex;
   align-items: flex-start;

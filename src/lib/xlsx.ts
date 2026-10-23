@@ -5,7 +5,7 @@
 import { strToU8, zipSync } from 'fflate';
 
 export type CellValue = string | number | null | undefined;
-export type CellType = 'auto' | 'datetime' | 'text' | 'number';
+export type CellType = 'auto' | 'datetime' | 'text' | 'number' | 'duration';
 
 export interface Cell {
   v: CellValue;
@@ -23,6 +23,7 @@ export interface SheetSpec {
 const STYLE_HEADER = 1;
 const STYLE_DATETIME = 2;
 const STYLE_NUMBER = 3;
+const STYLE_DURATION = 4;
 
 /** Номер колонки -> буква (1 -> A, 27 -> AA). */
 function colName(n: number): string {
@@ -73,6 +74,11 @@ function cellXml(ref: string, cell: Cell): string {
     }
   }
 
+  if (type === 'duration' && typeof v === 'number' && Number.isFinite(v)) {
+    // длительность = доля суток; формат [h]:mm:ss в стилях
+    return `<c r="${ref}" s="${STYLE_DURATION}"><v>${(v / 86400).toFixed(10)}</v></c>`;
+  }
+
   if (typeof v === 'number' && Number.isFinite(v)) {
     return `<c r="${ref}" s="${STYLE_NUMBER}"><v>${v}</v></c>`;
   }
@@ -115,7 +121,7 @@ ${cols}
 function stylesXml(): string {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy-mm-dd hh:mm"/><numFmt numFmtId="165" formatCode="0.00"/></numFmts>
+<numFmts count="3"><numFmt numFmtId="164" formatCode="yyyy-mm-dd hh:mm"/><numFmt numFmtId="165" formatCode="0.00"/><numFmt numFmtId="166" formatCode="[h]:mm:ss"/></numFmts>
 <fonts count="2">
 <font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>
 <font><b/><sz val="11"/><color rgb="FF1F3A32"/><name val="Calibri"/><family val="2"/></font>
@@ -127,11 +133,12 @@ function stylesXml(): string {
 </fills>
 <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="4">
+<cellXfs count="5">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>
 <xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
 <xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;

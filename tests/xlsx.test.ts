@@ -40,12 +40,10 @@ describe('xlsx', () => {
     const ws = wb.Sheets['Тренировки'];
     const rows = XLSX.utils.sheet_to_json<(string | number)[]>(ws, { header: 1, raw: true });
 
-    expect(rows[0]).toEqual(['Дата и время', 'Километраж (км)', 'Время (мин)', 'Ссылка']);
+    expect(rows[0]).toEqual(['Дата и время', 'Километраж (км)', 'Время', 'Ссылка']);
     // сортировка по дате: 18 октября раньше 20-го
     expect(rows[1][1]).toBe(3.1);
-    expect(rows[1][2]).toBeCloseTo(42.2, 1);
     expect(rows[2][1]).toBe(6.8);
-    expect(rows[2][2]).toBeCloseTo(176.6, 1);
     expect(rows[2][3]).toBe('https://share.mypacer.com/track/OXxdWKozfoIOzHAnr4OLFE');
   });
 
@@ -57,6 +55,25 @@ describe('xlsx', () => {
     expect(cell.t).toBe('n');
     expect(cell.v).toBeCloseTo(excelSerial('2026-10-20T07:37')!, 6);
     expect(String(cell.z)).toContain('yyyy');
+  });
+
+  it('пишет время как длительность Excel', () => {
+    const data = buildXlsx([buildSheet(entries)]);
+    const wb = XLSX.read(data, { type: 'array', cellNF: true });
+    const ws = wb.Sheets['Тренировки'];
+    const cell = ws['C3'];
+    expect(cell.t).toBe('n');
+    expect(cell.v).toBeCloseTo(10594 / 86400, 8);
+    expect(String(cell.z)).toContain('mm:ss');
+  });
+
+  it('умеет выгружать минуты числом', () => {
+    const data = buildXlsx([buildSheet(entries, { timeFormat: 'minutes' })]);
+    const wb = XLSX.read(data, { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json<(string | number)[]>(wb.Sheets['Тренировки'], { header: 1 });
+    expect(rows[0][2]).toBe('Время (мин)');
+    expect(rows[2][2]).toBeCloseTo(176.6, 1);
+    expect(rows[1][2]).toBeCloseTo(42.2, 1);
   });
 
   it('добавляет дополнительные колонки по запросу', () => {

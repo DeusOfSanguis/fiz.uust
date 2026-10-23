@@ -58,6 +58,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortMode>('date-desc');
   const [withExtras, setWithExtras] = useState(false);
+  const [timeFormat, setTimeFormat] = useState<'duration' | 'minutes'>('duration');
   const [dialog, setDialog] = useState<{ open: boolean; entry: Entry | null }>({ open: false, entry: null });
   const [deleting, setDeleting] = useState<Entry | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -343,13 +344,15 @@ export default function App() {
           <ExportPanel
             count={entries.length}
             withExtras={withExtras}
+            timeFormat={timeFormat}
             onToggleExtras={setWithExtras}
+            onChangeTimeFormat={setTimeFormat}
             onXlsx={() => {
-              exportXlsx(entries, { withExtras });
+              exportXlsx(entries, { withExtras, timeFormat });
               toast('success', 'Excel готов', `Строк в таблице: ${entries.length}`);
             }}
             onCsv={() => {
-              exportCsv(entries, { withExtras });
+              exportCsv(entries, { withExtras, timeFormat });
               toast('success', 'CSV готов');
             }}
             onJson={() => {

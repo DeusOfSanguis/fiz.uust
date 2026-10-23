@@ -3,13 +3,24 @@ import { plural } from '../lib/format';
 interface Props {
   count: number;
   withExtras: boolean;
+  timeFormat: 'duration' | 'minutes';
   onToggleExtras: (v: boolean) => void;
+  onChangeTimeFormat: (v: 'duration' | 'minutes') => void;
   onXlsx: () => void;
   onCsv: () => void;
   onJson: () => void;
 }
 
-export function ExportPanel({ count, withExtras, onToggleExtras, onXlsx, onCsv, onJson }: Props) {
+export function ExportPanel({
+  count,
+  withExtras,
+  timeFormat,
+  onToggleExtras,
+  onChangeTimeFormat,
+  onXlsx,
+  onCsv,
+  onJson,
+}: Props) {
   const disabled = count === 0;
 
   return (
@@ -25,7 +36,7 @@ export function ExportPanel({ count, withExtras, onToggleExtras, onXlsx, onCsv, 
       <ul className="columns-preview">
         <li>Дата и время</li>
         <li>Километраж (км)</li>
-        <li>Время (мин)</li>
+        <li>{timeFormat === 'minutes' ? 'Время (мин)' : 'Время'}</li>
         <li>Ссылка</li>
         {withExtras && (
           <>
@@ -36,6 +47,17 @@ export function ExportPanel({ count, withExtras, onToggleExtras, onXlsx, onCsv, 
           </>
         )}
       </ul>
+
+      <label className="field export-field">
+        <span>Время</span>
+        <select
+          value={timeFormat}
+          onChange={(e) => onChangeTimeFormat(e.target.value as 'duration' | 'minutes')}
+        >
+          <option value="duration">2:56:34 — формат Excel, суммируется</option>
+          <option value="minutes">176,6 — минуты числом</option>
+        </select>
+      </label>
 
       <label className="checkbox">
         <input type="checkbox" checked={withExtras} onChange={(e) => onToggleExtras(e.target.checked)} />
