@@ -349,7 +349,7 @@ export default function App() {
             onChangeTimeFormat={setTimeFormat}
             onXlsx={() => {
               exportXlsx(entries, { withExtras, timeFormat });
-              toast('success', 'Excel готов', `Строк в таблице: ${entries.length}`);
+              toast('success', 'Excel готов', `Записей в таблице: ${entries.length}`);
             }}
             onCsv={() => {
               exportCsv(entries, { withExtras, timeFormat });
