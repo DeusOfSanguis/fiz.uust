@@ -103,20 +103,38 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          set -o pipefail
           if [ -n "$KEYSTORE_PASSWORD" ]; then TASK=assembleRelease; OUT=app/build/outputs/apk/release/app-release.apk
           else TASK=assembleDebug; OUT=app/build/outputs/apk/debug/app-debug.apk; fi
 
-          ./gradlew "$TASK" --no-daemon --stacktrace 2>&1 | tee /tmp/gradle.log
+          chmod +x ./gradlew
+
+          # В shell у GitHub Actions включён `-e`: без `set +e` падение
+          # конвейера обрывает скрипт до разбора лога.
+          set +e
+          ./gradlew "$TASK" --no-daemon --console=plain --stacktrace 2>&1 | tee /tmp/gradle.log
           STATUS=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "### Gradle: код $STATUS"
+            echo '```'
+            tail -50 /tmp/gradle.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$STATUS" -ne 0 ]; then
-            # показываем ошибку в аннотациях: логи сборки иначе не достать
-            echo "Gradle завершился с кодом $STATUS"
-            grep -E "^\s*(\* What went wrong|> |Caused by|FAILURE|e: |error:)" /tmp/gradle.log | head -25 | while IFS= read -r line; do
+            # Логи сборки недоступны извне, поэтому причину выносим в аннотации.
+            if grep -q "What went wrong" /tmp/gradle.log; then
+              awk '/What went wrong/{f=1} f{print; n++} n>=8{exit}' /tmp/gradle.log > /tmp/why.txt
+            else
+              tail -8 /tmp/gradle.log > /tmp/why.txt
+            fi
+            grep -v "^[[:space:]]*$" /tmp/why.txt > /tmp/why2.txt || true
+            mv /tmp/why2.txt /tmp/why.txt
+            while IFS= read -r line; do
               clean=$(printf '%s' "$line" | tr -d '\r' | sed 's/%/%25/g')
-              echo "::error title=Gradle::$clean"
-            done
+              echo "::error title=Gradle::${clean:0:400}"
+            done < /tmp/why.txt
             exit "$STATUS"
           fi
 
