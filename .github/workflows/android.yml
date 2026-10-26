@@ -103,13 +103,24 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_PASSWORD" ]; then
-            ./gradlew assembleRelease --no-daemon
-            cp app/build/outputs/apk/release/app-release.apk ../pacer-log.apk
-          else
-            ./gradlew assembleDebug --no-daemon
-            cp app/build/outputs/apk/debug/app-debug.apk ../pacer-log.apk
+          set -o pipefail
+          if [ -n "$KEYSTORE_PASSWORD" ]; then TASK=assembleRelease; OUT=app/build/outputs/apk/release/app-release.apk
+          else TASK=assembleDebug; OUT=app/build/outputs/apk/debug/app-debug.apk; fi
+
+          ./gradlew "$TASK" --no-daemon --stacktrace 2>&1 | tee /tmp/gradle.log
+          STATUS=${PIPESTATUS[0]}
+
+          if [ "$STATUS" -ne 0 ]; then
+            # показываем ошибку в аннотациях: логи сборки иначе не достать
+            echo "Gradle завершился с кодом $STATUS"
+            grep -E "^\s*(\* What went wrong|> |Caused by|FAILURE|e: |error:)" /tmp/gradle.log | head -25 | while IFS= read -r line; do
+              clean=$(printf '%s' "$line" | tr -d '\r' | sed 's/%/%25/g')
+              echo "::error title=Gradle::$clean"
+            done
+            exit "$STATUS"
           fi
+
+          cp "$OUT" ../pacer-log.apk
 
       - name: Проверка файла
         run: ls -lh pacer-log.apk
