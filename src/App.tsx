@@ -320,13 +320,21 @@ function Journal() {
     if (urls.length) void runUrls(urls);
   }, [runUrls]);
 
-  // Приём «поделиться»: ?share=… / ?text=… / ?url=…
+  // Приём «поделиться»: ?share=… / ?text=… / ?url=… и то же в #хеше.
+  //
+  // Хеш нужен для iPhone: шорткат может открыть адрес вида
+  // https://…/#share=<ссылка>, и это работает без сервера и без кодирования
+  // query-параметров.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payload = ['share', 'text', 'url', 'title']
-      .map((k) => params.get(k))
-      .filter((v): v is string => Boolean(v))
-      .join('\n');
+    const readParams = (raw: string) => {
+      const params = new URLSearchParams(raw);
+      return ['share', 'text', 'url', 'title']
+        .map((k) => params.get(k))
+        .filter((v): v is string => Boolean(v));
+    };
+
+    const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+    const payload = [...readParams(window.location.search), ...readParams(hash)].join('\n');
     if (!payload) return;
     const urls = extractPacerUrls(payload);
     if (!urls.length) return;

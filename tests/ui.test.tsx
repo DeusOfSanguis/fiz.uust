@@ -376,3 +376,34 @@ describe('офлайн', () => {
     window.dispatchEvent(new Event('online'));
   });
 });
+
+describe('ссылка из iPhone-шортката', () => {
+  it('принимает ссылку из #share=…', async () => {
+    stubFetch();
+    window.history.replaceState({}, '', `/#share=${encodeURIComponent(url)}`);
+
+    const el = mount();
+    await flush(6);
+
+    const saved = JSON.parse(localStorage.getItem('pacer-log.entries.v1') ?? '[]');
+    expect(saved).toHaveLength(1);
+    expect(saved[0].url).toBe(url);
+    // параметр убран из адреса, чтобы не добавилось повторно при обновлении
+    expect(window.location.hash).toBe('');
+    expect(el.textContent).toContain('2:56');
+  });
+
+  it('принимает обычный текст в #text=…', async () => {
+    stubFetch();
+    window.history.replaceState(
+      {},
+      '',
+      `/#text=${encodeURIComponent(`Смотрите мою прогулку ${url}`)}`,
+    );
+
+    const el = mount();
+    await flush(6);
+
+    expect(JSON.parse(localStorage.getItem('pacer-log.entries.v1') ?? '[]')).toHaveLength(1);
+  });
+});
