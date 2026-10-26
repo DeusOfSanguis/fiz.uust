@@ -56,14 +56,21 @@ jobs:
       - name: Копирование в Android-проект
         run: npx cap copy android
 
+      # Подпись постоянным ключом, если заданы секреты репозитория.
+      # Проверка идёт внутри скрипта: в `if:` контекст secrets недоступен.
       - name: Подпись (если заданы секреты)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Секреты подписи не заданы — будет собран debug-APK."
+            exit 0
+          fi
+
+          echo "Ключ подписи найден — готовим release-сборку."
           echo "$KEYSTORE_BASE64" | base64 -d > android/release.keystore
           cat >> android/app/build.gradle <<'GRADLE'
 
