@@ -1,0 +1,11 @@
+node_modules
+dist
+*.local
+.DS_Store
+.vite
+coverage
+# сгенерированные примеры
+example-output.xlsx
+
+# журнал пользователя и его бэкапы
+data/
