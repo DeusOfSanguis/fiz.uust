@@ -57,8 +57,11 @@ jobs:
       - name: Сборка веб-части
         run: npm run build
 
+      # `cap sync` (а не `copy`) ещё и пересобирает модуль
+      # capacitor-cordova-android-plugins, который лежит в .gitignore,
+      # но требуется в settings.gradle.
       - name: Копирование в Android-проект
-        run: npx cap copy android
+        run: npx cap sync android
 
       # Подпись постоянным ключом, если заданы секреты репозитория.
       # Проверка идёт внутри скрипта: в `if:` контекст secrets недоступен.
