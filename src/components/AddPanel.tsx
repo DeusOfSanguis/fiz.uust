@@ -29,6 +29,8 @@ interface Props {
   onClipboard: () => void;
   jobs: Job[];
   busy: boolean;
+  /** Нет интернета — новые ссылки не загрузить */
+  offline?: boolean;
   /** Сколько ссылок осталось в незавершённой очереди */
   queueCount: number;
   onResume: () => void;
@@ -52,6 +54,7 @@ export function AddPanel({
   onClipboard,
   jobs,
   busy,
+  offline,
   queueCount,
   onResume,
   onClearQueue,
@@ -92,8 +95,8 @@ export function AddPanel({
       />
 
       <div className="add-actions">
-        <button className="btn btn-primary" onClick={onAdd} disabled={busy || !input.trim()}>
-          {busy ? 'Загружаем…' : 'Добавить'}
+        <button className="btn btn-primary" onClick={onAdd} disabled={busy || !input.trim() || offline}>
+          {busy ? 'Загружаем…' : offline ? 'Нужен интернет' : 'Добавить'}
         </button>
         {canReadClipboard && (
           <button className="btn btn-ghost" onClick={onClipboard} type="button">

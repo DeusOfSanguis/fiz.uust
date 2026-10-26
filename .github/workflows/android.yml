@@ -1,0 +1,110 @@
+name: Build Android APK
+
+# Собирает APK и выкладывает его в артефакты сборки.
+# Запуск: вручную (Actions → Build Android APK → Run workflow) или при обновлении main.
+#
+# ВАЖНО: подпись. Если добавить в настройки репозитория секреты
+# KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD — APK будет
+# подписан постоянным ключом и обновления можно ставить поверх старой версии.
+# Без секретов собирается debug-APK: он ставится, но каждая новая сборка
+# потребует удалить предыдущую.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'android/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'vite.config.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Зависимости
+        run: npm ci
+
+      - name: Тесты
+        run: npm test
+
+      - name: Сборка веб-части
+        run: npm run build
+
+      - name: Копирование в Android-проект
+        run: npx cap copy android
+
+      - name: Подпись (если заданы секреты)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/release.keystore
+          cat >> android/app/build.gradle <<'GRADLE'
+
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file("../release.keystore")
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                  }
+              }
+          }
+          GRADLE
+
+      - name: Сборка APK
+        working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_PASSWORD" ]; then
+            ./gradlew assembleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk ../pacer-log.apk
+          else
+            ./gradlew assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk ../pacer-log.apk
+          fi
+
+      - name: Проверка файла
+        run: ls -lh pacer-log.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacer-log-apk
+          path: pacer-log.apk
+          retention-days: 90

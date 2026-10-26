@@ -1,0 +1,11 @@
+{
+  "appId": "ru.pacer.log",
+  "appName": "Pacer Log",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

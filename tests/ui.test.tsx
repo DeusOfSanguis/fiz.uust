@@ -322,3 +322,57 @@ describe('сохранность данных', () => {
     expect(saved.map((e: { pacerId: string }) => e.pacerId).sort()).toEqual(['other', 'srv-1']);
   });
 });
+
+describe('офлайн', () => {
+  it('показывает журнал и считает итоги без сети', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
+    window.dispatchEvent(new Event('offline'));
+
+    setEntries([
+      {
+        id: 'off-1',
+        pacerId: 'off-1',
+        url: 'https://share.mypacer.com/track/off1',
+        dateISO: '2026-10-05T09:00',
+        distanceKm: 7.4,
+        durationSec: 5400,
+        source: 'pacer',
+        addedAt: '2026-10-05T09:00:00.000Z',
+      },
+    ]);
+
+    const el = mount();
+    await flush(4);
+
+    // записи на месте, километраж обрезан до 6, итог посчитан
+    expect(el.textContent).toContain('6,00');
+    expect(el.textContent).toContain('(7,40)');
+    expect(el.querySelector('.stat-value')?.textContent).toBe('6,00');
+    // и видно, что сети нет
+    expect(el.textContent).toContain('Нет интернета');
+
+    Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+    window.dispatchEvent(new Event('online'));
+  });
+
+  it('не пытается загрузить ссылку без сети', async () => {
+    const fetchMock = vi.fn(async () => new Response(html, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
+    window.dispatchEvent(new Event('offline'));
+
+    const el = mount();
+    await flush(3);
+
+    const button = el.querySelector('.btn-primary') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Нужен интернет');
+
+    Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+    window.dispatchEvent(new Event('online'));
+  });
+});

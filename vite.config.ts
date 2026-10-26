@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { createEntriesHandler } from './server/store.mjs';
@@ -6,6 +9,45 @@ const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
 const ALLOWED = /(^|\.)(mypacer\.com|pacer\.cc)$/i;
+
+function walk(dir: string, base = dir): string[] {
+  const out: string[] = [];
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) out.push(...walk(full, base));
+    else out.push(relative(base, full).split('\\').join('/'));
+  }
+  return out;
+}
+
+/**
+ * Офлайн-режим: после сборки создаёт dist/sw.js с полным списком файлов,
+ * чтобы приложение открывалось и работало без интернета
+ * (журнал и выгрузка Excel считаются локально).
+ */
+function offlinePlugin(): Plugin {
+  return {
+    name: 'pacer-offline',
+    apply: 'build',
+    closeBundle() {
+      const dist = resolve(process.cwd(), 'dist');
+      const files = walk(dist).filter((f) => f !== 'sw.js' && !f.endsWith('.map'));
+      const hash = createHash('sha1');
+      for (const f of files) hash.update(f).update(String(statSync(join(dist, f)).size));
+      const version = hash.digest('hex').slice(0, 10);
+
+      const precache = files
+        .filter((f) => !f.endsWith('.nojekyll'))
+        .map((f) => `'./${f}'`);
+      const template = readFileSync(resolve(process.cwd(), 'src/sw-template.js'), 'utf8');
+      const sw = template
+        .replace('__VERSION__', version)
+        .replace('__PRECACHE__', `[\n  ${precache.join(',\n  ')}\n]`);
+      writeFileSync(join(dist, 'sw.js'), sw, 'utf8');
+      console.log(`[offline] sw.js: ${precache.length} файлов в кэше, версия ${version}`);
+    },
+  };
+}
 
 /**
  * /api/entries — хранение журнала в файле data/pacer-log.json (с бэкапами).
@@ -83,7 +125,7 @@ function pacerProxyPlugin(): Plugin {
 export default defineConfig({
   // относительные пути — сборка работает и в корне домена, и в подпапке
   base: './',
-  plugins: [react(), entriesPlugin(), pacerProxyPlugin()],
+  plugins: [react(), entriesPlugin(), pacerProxyPlugin(), offlinePlugin()],
   server: {
     host: '0.0.0.0',
     port: 5173,

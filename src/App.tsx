@@ -35,6 +35,7 @@ import { AddPanel, type Job } from './components/AddPanel';
 import { EntryTable } from './components/EntryTable';
 import { ExportPanel } from './components/ExportPanel';
 import { ToastStack } from './components/ToastStack';
+import { useOnline } from './lib/useOnline';
 
 const EXAMPLE_URL = 'https://share.mypacer.com/track/OXxdWKozfoIOzHAnr4OLFE';
 
@@ -81,6 +82,7 @@ function Journal() {
   const [deleting, setDeleting] = useState<Entry | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+  const online = useOnline();
 
   const abortRef = useRef<AbortController | null>(null);
   const toastId = useRef(0);
@@ -258,6 +260,10 @@ function Journal() {
   );
 
   const addFromInput = useCallback(() => {
+    if (!online) {
+      toast('error', 'Нет интернета', 'Журнал и Excel работают офлайн, а для новой ссылки нужна сеть.');
+      return;
+    }
     const urls = extractPacerUrls(input);
     if (!urls.length) {
       if (!input.trim()) return;
@@ -266,7 +272,7 @@ function Journal() {
     }
     setInput('');
     void runUrls(urls);
-  }, [input, runUrls, toast]);
+  }, [input, online, runUrls, toast]);
 
   const addFromText = useCallback(
     (text: string) => {
@@ -456,7 +462,12 @@ function Journal() {
         </div>
 
         <div className="topbar-right">
-          <SyncBadge mode={syncState.mode} savedAt={syncState.savedAt} message={syncState.message} />
+          <SyncBadge
+            mode={online ? syncState.mode : 'local'}
+            savedAt={syncState.savedAt}
+            message={syncState.message}
+            online={online}
+          />
           <div className="stats" aria-label="Итого">
             <div className="stat">
               <span className="stat-value">{formatKm(totals.counted)}</span>
@@ -474,6 +485,16 @@ function Journal() {
         </div>
       </header>
 
+      {!online && (
+        <div className="offline-banner" role="status">
+          <strong>Нет интернета</strong>
+          <span>
+            Журнал, подсчёты и Excel работают. Добавить новую ссылку можно, когда появится сеть —
+            она сохранится в очереди.
+          </span>
+        </div>
+      )}
+
       <main className="layout">
         <aside className="sidebar">
           <AddPanel
@@ -487,6 +508,7 @@ function Journal() {
             onCancel={cancel}
             onRetry={retry}
             onDismiss={dismissJob}
+            offline={!online}
             queueCount={busy ? 0 : queue.length}
             onResume={resumeQueue}
             onClearQueue={() => {
@@ -656,10 +678,29 @@ const SYNC_LABEL: Record<SyncMode, string> = {
   error: 'Не отправлено',
 };
 
-function SyncBadge({ mode, savedAt, message }: { mode: SyncMode; savedAt: string | null; message?: string }) {
+function SyncBadge({
+  mode,
+  savedAt,
+  message,
+  online,
+}: {
+  mode: SyncMode;
+  savedAt: string | null;
+  message?: string;
+  online: boolean;
+}) {
   const time = savedAt
     ? new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(savedAt))
     : '';
+
+  if (!online) {
+    return (
+      <span className="sync-badge sync-local" title="Нет сети: журнал открыт из памяти телефона, записи не теряются">
+        <span className="sync-dot" aria-hidden />
+        Без сети
+      </span>
+    );
+  }
 
   const title =
     mode === 'synced'

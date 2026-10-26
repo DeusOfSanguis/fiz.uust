@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pacer Log</string>
+    <string name="title_activity_main">Pacer Log</string>
+    <string name="package_name">ru.pacer.log</string>
+    <string name="custom_url_scheme">ru.pacer.log</string>
+</resources>
