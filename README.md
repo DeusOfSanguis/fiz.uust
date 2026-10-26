@@ -36,8 +36,11 @@
 
 Помимо сайта, приложение можно установить как обычное приложение Android:
 
-1. Откройте вкладку **Actions** в репозитории → **Build Android APK** → **Run workflow**.
-2. Через 5–8 минут внизу страницы сборки появится файл **pacer-log-apk** — скачайте его.
+1. Откройте вкладку **Actions** в репозитории → **Build Android APK**
+   (https://github.com/DeusOfSanguis/fiz.uust/actions/workflows/android.yml).
+2. Сборка запускается сама при обновлении кода; вручную — кнопкой **Run workflow**.
+   Через 5–8 минут **внизу страницы запуска** появится файл **pacer-log-apk** — скачайте его
+   (архив, внутри `pacer-log.apk`).
 3. Откройте APK на телефоне (разрешите установку из неизвестных источников) — готово.
 
 Внутри APK всё уже на телефоне: журнал, подсчёты и Excel работают **без интернета**.
@@ -60,7 +63,7 @@ base64 -w0 release.keystore    # вставить в секрет KEYSTORE_BASE6
 Секреты репозитория: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
 После этого сборка сама подпишет release-APK.
 
-Собрать локально (нужны JDK 21 и Android SDK):
+Собрать локально (нужны **JDK 17** — Gradle 8.2 не работает на 21 — и Android SDK):
 
 ```bash
 npm ci && npm run apk          # debug-APK: android/app/build/outputs/apk/debug/
