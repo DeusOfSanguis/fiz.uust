@@ -81,6 +81,8 @@ function pacerProxyPlugin(): Plugin {
 }
 
 export default defineConfig({
+  // относительные пути — сборка работает и в корне домена, и в подпапке
+  base: './',
   plugins: [react(), entriesPlugin(), pacerProxyPlugin()],
   server: {
     host: '0.0.0.0',

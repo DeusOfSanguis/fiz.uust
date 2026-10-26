@@ -35,7 +35,6 @@ import { AddPanel, type Job } from './components/AddPanel';
 import { EntryTable } from './components/EntryTable';
 import { ExportPanel } from './components/ExportPanel';
 import { ToastStack } from './components/ToastStack';
-import { PhoneGate, isAllowedDevice } from './components/PhoneGate';
 
 const EXAMPLE_URL = 'https://share.mypacer.com/track/OXxdWKozfoIOzHAnr4OLFE';
 
@@ -64,7 +63,6 @@ function trackToEntry(track: ParsedTrack): Entry {
 }
 
 export default function App() {
-  if (!isAllowedDevice()) return <PhoneGate />;
   return <Journal />;
 }
 

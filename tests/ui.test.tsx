@@ -81,8 +81,8 @@ async function addLink(el: HTMLElement, link = url) {
   await flush(6);
 }
 
-describe('доступ только с телефона', () => {
-  it('на компьютере показывает экран «только с телефона»', () => {
+describe('доступ с любого устройства', () => {
+  it('открывается и на компьютере — без заглушек и ограничений', () => {
     window.history.replaceState({}, '', '/');
     Object.defineProperty(window.navigator, 'userAgent', {
       value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0 Safari/537.36',
@@ -92,15 +92,9 @@ describe('доступ только с телефона', () => {
     stubFetch();
 
     const el = mount();
-    expect(el.textContent).toContain('Только с телефона');
-    expect(el.textContent).toContain('Установить приложение');
-    expect(el.querySelector('#share-input')).toBeNull();
-  });
-
-  it('с параметром ?desktop=1 открывается на компьютере (для отладки)', () => {
-    stubFetch();
-    const el = mount();
+    expect(el.textContent).not.toContain('Только с телефона');
     expect(el.querySelector('#share-input')).not.toBeNull();
+    expect(el.textContent).toContain('Добавить тренировку');
   });
 });
 

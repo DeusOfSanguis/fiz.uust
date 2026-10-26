@@ -12,7 +12,7 @@ createRoot(document.getElementById('root')!).render(
 // PWA: нужен для приёма «поделиться» из мобильного Pacer.
 if ('serviceWorker' in navigator && window.isSecureContext) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    navigator.serviceWorker.register(new URL('sw.js', document.baseURI).toString(), { scope: './' }).catch(() => {
       /* без service worker приложение работает как обычно */
     });
   });
