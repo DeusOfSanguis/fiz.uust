@@ -1,0 +1,19 @@
+node_modules
+dist
+*.local
+.DS_Store
+.vite
+coverage
+# сгенерированные примеры
+example-output.xlsx
+
+# журнал пользователя и его бэкапы
+data/
+
+# Android / Capacitor
+android/local.properties
+android/app/build
+android/build
+android/.gradle
+android/release.keystore
+*.apk
